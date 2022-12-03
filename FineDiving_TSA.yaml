@@ -12,7 +12,7 @@ data_root : '../dataset/FineDiving'
 label_path : 'Annotations/fine-grained_annotation_aqa.pkl'
 train_split : 'Annotations/train_split.pkl'
 test_split : 'Annotations/test_split.pkl'
-
+#try
 # optimizer
 optimizer: 'Adam'
 weight_decay : 0
