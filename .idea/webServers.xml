@@ -2,8 +2,15 @@
 <project version="4">
   <component name="WebServers">
     <option name="servers">
-      <webServer id="5f6a3290-8276-4076-96eb-34e9a2dfe075" name="div">
-        <fileTransfer rootFolder="/home/aq" accessType="SFTP" host="10.112.170.213" port="22" sshConfigId="be8831a8-cf47-4107-ac28-64f2ffeb5e07" sshConfig="aq@10.112.170.213:22 password">
+      <webServer id="ed9c819d-e160-4038-bf9d-d0038d007385" name="autodl">
+        <fileTransfer rootFolder="/root" accessType="SFTP" host="region-41.seetacloud.com" port="53690" sshConfigId="1e4a6542-7e4d-4904-897f-991e63113ade" sshConfig="root@region-41.seetacloud.com:53690 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="fc5b74f7-5623-4e35-ad1a-9070b2468c74" name="aq">
+        <fileTransfer rootFolder="/home/aq" accessType="SFTP" host="10.112.170.213" port="1234" sshConfigId="be8831a8-cf47-4107-ac28-64f2ffeb5e07" sshConfig="aq@10.112.170.213:1234 password">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>

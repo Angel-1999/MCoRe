@@ -1,0 +1,46 @@
+Load config yaml from FineDiving_TSA.yaml
+Save the Config file at ./experiments/FineDiving/test_w_DN/rny002_gsm_gru_0127_1942/config.yaml
+Namespace(DD_choosing=False, action_number_choosing=True, base_lr=0.001, benchmark='FineDiving', bs_test=1, bs_train=8, ckpts='./experiments/FineDiving/w_DN/rny002_gsm_gru_0127_1942/last.pth', clip_len=96, config='FineDiving_TSA.yaml', data_root='../dataset/FineDiving', experiment_path='./experiments/FineDiving/test_w_DN/rny002_gsm_gru_0127_1942', feature_arch='rny002_gsm', fix_bn=True, fix_size=5, frame_length=96, gpu_parallel=False, label_path='Annotations/fine-grained_annotation_aqa.pkl', lr_factor=0.1, max_epoch=200, modality='rgb', optimizer='Adam', prefix='test_w_DN/rny002_gsm_gru_0127_1942', print_freq=40, prob_tas_threshold=1, resume=False, seed=0, step_num=3, sync_bn=False, temporal_arch='gru', test=True, test_split='Annotations/test_split.pkl', train_split='Annotations/train_split.pkl', voter_number=10, weight_decay=0, workers=8)
+Tester start ... 
+=> Processing stage with 1 blocks residual
+=> Using GSM, fold dim: 8 / 32
+=> Processing stage with 1 blocks residual
+=> Using GSM, fold dim: 8 / 24
+=> Processing stage with 4 blocks residual
+=> Using GSM, fold dim: 16 / 56
+=> Using GSM, fold dim: 40 / 152
+=> Using GSM, fold dim: 40 / 152
+=> Using GSM, fold dim: 40 / 152
+=> Processing stage with 7 blocks residual
+=> Using GSM, fold dim: 40 / 152
+=> Using GSM, fold dim: 92 / 368
+=> Using GSM, fold dim: 92 / 368
+=> Using GSM, fold dim: 92 / 368
+=> Using GSM, fold dim: 92 / 368
+=> Using GSM, fold dim: 92 / 368
+=> Using GSM, fold dim: 92 / 368
+Loading weights from ./experiments/FineDiving/w_DN/rny002_gsm_gru_0127_1942/last.pth...
+ckpts @ 140 epoch(rho = 0.9270, L2 = 33.6802 , RL2 = 0.0031)
+/mnt21t/home/hsy/anaconda3/envs/tsa2/lib/python3.8/site-packages/torch/nn/modules/rnn.py:942: UserWarning: RNN module weights are not part of single contiguous chunk of memory. This means they need to be compacted at every call, possibly greatly increasing memory usage. To compact weights again call flatten_parameters(). (Triggered internally at  ../aten/src/ATen/native/cudnn/RNN.cpp:926.)
+  result = _VF.gru(input, hx, self._flat_weights, self.bias, self.num_layers,
+[TEST][0/749] 	 Batch_time 6.38 	 Data_time 4.63
+[TEST][40/749] 	 Batch_time 0.84 	 Data_time 0.00
+[TEST][80/749] 	 Batch_time 0.78 	 Data_time 0.00
+[TEST][120/749] 	 Batch_time 0.42 	 Data_time 0.00
+[TEST][160/749] 	 Batch_time 0.81 	 Data_time 0.00
+[TEST][200/749] 	 Batch_time 0.71 	 Data_time 0.00
+[TEST][240/749] 	 Batch_time 0.84 	 Data_time 0.00
+[TEST][280/749] 	 Batch_time 0.77 	 Data_time 0.00
+[TEST][320/749] 	 Batch_time 0.82 	 Data_time 0.00
+[TEST][360/749] 	 Batch_time 0.81 	 Data_time 0.00
+[TEST][400/749] 	 Batch_time 0.74 	 Data_time 0.00
+[TEST][440/749] 	 Batch_time 0.74 	 Data_time 0.00
+[TEST][480/749] 	 Batch_time 0.83 	 Data_time 0.00
+[TEST][520/749] 	 Batch_time 0.84 	 Data_time 0.00
+[TEST][560/749] 	 Batch_time 0.78 	 Data_time 0.00
+[TEST][600/749] 	 Batch_time 0.73 	 Data_time 0.00
+[TEST][640/749] 	 Batch_time 0.80 	 Data_time 0.00
+[TEST][680/749] 	 Batch_time 0.80 	 Data_time 0.00
+[TEST][720/749] 	 Batch_time 0.82 	 Data_time 0.00
+[TEST] tIoU_5: 0.982644, tIoU_75: 0.791722
+[TEST] correlation: 0.923231, L2: 35.585195, RL2: 0.003265

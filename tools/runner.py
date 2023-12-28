@@ -1,3 +1,4 @@
+# 用于训练、测试的代码
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from utils import misc
 import time
 import pickle
 
-def train_net(args):
+def train_net(args):  #训练主函数
     print('Trainer start ... ')
     # build dataset
     train_dataset, test_dataset = builder.dataset_builder(args)
@@ -20,19 +21,20 @@ def train_net(args):
                                                   pin_memory=True)
 
     # build model
-    base_model, psnet_model, decoder, regressor_delta = builder.model_builder(args)
+    EnhNet_model,base_model,psnet_model, decoder, regressor_delta = builder.model_builder(args)
 
     # CUDA
     global use_gpu
     use_gpu = torch.cuda.is_available()
     if use_gpu:
+        EnhNet_model = EnhNet_model.cuda()
         base_model = base_model.cuda()
         psnet_model = psnet_model.cuda()
         decoder = decoder.cuda()
         regressor_delta = regressor_delta.cuda()
         torch.backends.cudnn.benchmark = True
 
-    optimizer, scheduler = builder.build_opti_sche(base_model, psnet_model, decoder, regressor_delta, args)
+    optimizer, scheduler = builder.build_opti_sche(EnhNet_model,base_model,psnet_model, decoder, regressor_delta, args)
 
     start_epoch = 0
     global epoch_best_tas, pred_tious_best_5, pred_tious_best_75, epoch_best_aqa, rho_best, L2_min, RL2_min
@@ -46,12 +48,13 @@ def train_net(args):
 
     # resume ckpts
     if args.resume:
-        start_epoch, epoch_best_aqa, rho_best, L2_min, RL2_min = builder.resume_train(base_model, psnet_model, decoder,
+        start_epoch, epoch_best_aqa, rho_best, L2_min, RL2_min = builder.resume_train(base_model,psnet_model, decoder,
                                                                                       regressor_delta, optimizer, args)
         print('resume ckpts @ %d epoch(rho = %.4f, L2 = %.4f , RL2 = %.4f)'
               % (start_epoch - 1, rho_best, L2_min, RL2_min))
 
     # DP
+    EnhNet_model = nn.DataParallel(EnhNet_model)
     base_model = nn.DataParallel(base_model)
     psnet_model = nn.DataParallel(psnet_model)
     decoder = nn.DataParallel(decoder)
@@ -59,7 +62,7 @@ def train_net(args):
 
     # loss
     mse = nn.MSELoss().cuda()
-    bce = nn.BCELoss().cuda()
+    ce = nn.CrossEntropyLoss().cuda()
 
     # training phase
     for epoch in range(start_epoch, args.max_epoch):
@@ -68,6 +71,7 @@ def train_net(args):
         true_scores = []
         pred_scores = []
 
+        EnhNet_model.train()
         base_model.train()  
         psnet_model.train()
         decoder.train()
@@ -89,10 +93,10 @@ def train_net(args):
 
             # forward
 
-            helper.network_forward_train(base_model, psnet_model, decoder, regressor_delta, pred_scores,
+            helper.network_forward_train(EnhNet_model,base_model,psnet_model, decoder, regressor_delta, pred_scores,
                                          video_1, label_1_score, video_2, label_2_score, mse, optimizer,
                                          opti_flag, epoch, idx+1, len(train_dataloader),
-                                         args, label_1_tas, label_2_tas, bce,
+                                         args, label_1_tas, label_2_tas, ce,
                                          pred_tious_5, pred_tious_75)
             true_scores.extend(data['final_score'].numpy())
 
@@ -110,8 +114,8 @@ def train_net(args):
         print('[Training] EPOCH: %d, correlation: %.4f, L2: %.4f, RL2: %.4f, lr1: %.4f, lr2: %.4f'%(epoch, rho, L2, RL2, 
             optimizer.param_groups[0]['lr'],  optimizer.param_groups[1]['lr']))
 
-        validate(base_model, psnet_model, decoder, regressor_delta, test_dataloader, epoch, optimizer, args)
-        helper.save_checkpoint(base_model, psnet_model, decoder, regressor_delta, optimizer, epoch,
+        validate(EnhNet_model,base_model,psnet_model, decoder, regressor_delta, test_dataloader, epoch, optimizer, args)
+        helper.save_checkpoint(EnhNet_model,base_model, psnet_model, decoder, regressor_delta, optimizer, epoch,
                                epoch_best_aqa, rho_best, L2_min, RL2_min, 'last', args)
         print('[TEST] EPOCH: %d, best correlation: %.6f, best L2: %.6f, best RL2: %.6f' % (epoch_best_aqa,
                                                                                            rho_best, L2_min, RL2_min))
@@ -123,7 +127,7 @@ def train_net(args):
             scheduler.step()
 
 
-def validate(base_model, psnet_model, decoder, regressor_delta, test_dataloader, epoch, optimizer, args):
+def validate(EnhNet_model,base_model,psnet_model, decoder, regressor_delta, test_dataloader, epoch, optimizer, args):
 
     print("Start validating epoch {}".format(epoch))
     global use_gpu
@@ -134,7 +138,8 @@ def validate(base_model, psnet_model, decoder, regressor_delta, test_dataloader,
     pred_tious_test_5 = []
     pred_tious_test_75 = []
 
-    base_model.eval()  
+    EnhNet_model.eval()
+    base_model.eval()
     psnet_model.eval()
     decoder.eval()
     regressor_delta.eval()
@@ -153,7 +158,7 @@ def validate(base_model, psnet_model, decoder, regressor_delta, test_dataloader,
             label_2_tas_list = [item['transits'].float().cuda() + 1 for item in target]
             label_2_score_list = [item['final_score'].float().reshape(-1, 1).cuda() for item in target]
 
-            helper.network_forward_test(base_model, psnet_model, decoder, regressor_delta, pred_scores,
+            helper.network_forward_test(EnhNet_model,base_model,psnet_model, decoder, regressor_delta, pred_scores,
                                         video_1, video_2_list, label_2_score_list,
                                         args, label_1_tas, label_2_tas_list,
                                         pred_tious_test_5, pred_tious_test_75)
@@ -179,7 +184,7 @@ def validate(base_model, psnet_model, decoder, regressor_delta, test_dataloader,
         if pred_tious_test_mean_75 > pred_tious_best_75:
             pred_tious_best_75 = pred_tious_test_mean_75
             epoch_best_tas = epoch
-        print('[TEST] EPOCH: %d, tIoU_5: %.6f, tIoU_75: %.6f' % (epoch, pred_tious_best_5, pred_tious_best_75))
+        print('[TEST] EPOCH: %d, tIoU_5: %.6f, tIoU_75: %.6f' % (epoch, pred_tious_test_mean_5, pred_tious_test_mean_75))
 
         if L2_min > L2:
             L2_min = L2
@@ -190,28 +195,30 @@ def validate(base_model, psnet_model, decoder, regressor_delta, test_dataloader,
             epoch_best_aqa = epoch
             print('-----New best found!-----')
             helper.save_outputs(pred_scores, true_scores, args)
-            helper.save_checkpoint(base_model, psnet_model, decoder, regressor_delta, optimizer, epoch, epoch_best_aqa,
+            helper.save_checkpoint(EnhNet_model,base_model, psnet_model, decoder, regressor_delta, optimizer, epoch, epoch_best_aqa,
                                    rho_best, L2_min, RL2_min, 'last', args)
         print('[TEST] EPOCH: %d, correlation: %.6f, L2: %.6f, RL2: %.6f' % (epoch, rho, L2, RL2))
 
-def test_net(args):
+def test_net(args):  #测试主函数
     print('Tester start ... ')
+    glo_start_time = time.time()
 
-    train_dataset, test_dataset = builder.dataset_builder(args)
+    test_dataset = builder.dataset_builder(args)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=args.bs_test,
                                                   shuffle=False, num_workers=int(args.workers),
                                                   pin_memory=True)
 
     # build model
-    base_model, psnet_model, decoder, regressor_delta = builder.model_builder(args)
+    EnhNet_model,base_model,psnet_model, decoder, regressor_delta = builder.model_builder(args)
 
     # load checkpoints
-    builder.load_model(base_model, psnet_model, decoder, regressor_delta, args)
+    builder.load_model(base_model,psnet_model, decoder, regressor_delta, args)
 
     # CUDA
     global use_gpu
     use_gpu = torch.cuda.is_available()
     if use_gpu:
+        # EnhNet_model = EnhNet_model.cuda()
         base_model = base_model.cuda()
         psnet_model = psnet_model.cuda()
         decoder = decoder.cuda()
@@ -219,23 +226,29 @@ def test_net(args):
         torch.backends.cudnn.benchmark = True
 
     # DP
+    # EnhNet_model = nn.DataParallel(EnhNet_model)
     base_model = nn.DataParallel(base_model)
     psnet_model = nn.DataParallel(psnet_model)
     decoder = nn.DataParallel(decoder)
     regressor_delta = nn.DataParallel(regressor_delta)
 
-    test(base_model, psnet_model, decoder, regressor_delta, test_dataloader, args)
+    test(base_model,psnet_model, decoder, regressor_delta, test_dataloader, args)
+    glo_end_time = time.time()
+    duration = glo_end_time - glo_start_time
+    print("Duration: ", duration)
 
-def test(base_model, psnet_model, decoder, regressor_delta, test_dataloader, args):
+def test(base_model,psnet_model, decoder, regressor_delta, test_dataloader, args):
     global use_gpu
     global epoch_best_aqa, rho_best, L2_min, RL2_min
     global epoch_best_tas, pred_tious_best_5, pred_tious_best_75
+
 
     true_scores = []
     pred_scores = []
     pred_tious_test_5 = []
     pred_tious_test_75 = []
 
+    # EnhNet_model.eval()
     base_model.eval()
     psnet_model.eval()
     decoder.eval()
@@ -255,7 +268,8 @@ def test(base_model, psnet_model, decoder, regressor_delta, test_dataloader, arg
             label_2_tas_list = [item['transits'].float().cuda() + 1 for item in target]
             label_2_score_list = [item['final_score'].float().reshape(-1, 1).cuda() for item in target]
 
-            helper.network_forward_test(base_model, psnet_model, decoder, regressor_delta, pred_scores,
+            EnhNet_model = 0
+            helper.network_forward_test(EnhNet_model,base_model, psnet_model, decoder, regressor_delta, pred_scores,
                                         video_1, video_2_list, label_2_score_list,
                                         args, label_1_tas, label_2_tas_list,
                                         pred_tious_test_5, pred_tious_test_75)
@@ -279,3 +293,5 @@ def test(base_model, psnet_model, decoder, regressor_delta, test_dataloader, arg
 
         print('[TEST] tIoU_5: %.6f, tIoU_75: %.6f' % (pred_tious_test_mean_5, pred_tious_test_mean_75))
         print('[TEST] correlation: %.6f, L2: %.6f, RL2: %.6f' % (rho, L2, RL2))
+
+

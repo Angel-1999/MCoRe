@@ -1,3 +1,4 @@
+# FineDiving数据集读取
 import torch
 import numpy as np
 import os
@@ -12,8 +13,9 @@ class FineDiving_Pair_Dataset(torch.utils.data.Dataset):
         random.seed(args.seed)
         self.subset = subset
         self.transforms = transform
-        self.random_choosing = args.random_choosing
+        # self.random_choosing = args.random_choosing
         self.action_number_choosing = args.action_number_choosing
+        self.DD_choosing = args.DD_choosing
         self.length = args.frame_length
         self.voter_number = args.voter_number
 

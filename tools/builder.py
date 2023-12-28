@@ -11,6 +11,7 @@ from utils.misc import import_class
 from torchvideotransforms import video_transforms, volume_transforms
 from models import decoder_fuser
 from models import MLP_score
+from models.E2Emodel import E2EModel,SpotModel,EnhModel
 
 
 def get_video_trans():
@@ -33,21 +34,35 @@ def get_video_trans():
 def dataset_builder(args):
     train_trans, test_trans = get_video_trans()
     Dataset = import_class("datasets." + args.benchmark)
-    train_dataset = Dataset(args, transform=train_trans, subset='train')
-    test_dataset = Dataset(args, transform=test_trans, subset='test')
-    return train_dataset, test_dataset
+    if args.test:
+        test_dataset = Dataset(args, transform=test_trans, subset='test')
+        return test_dataset
+    else:
+        train_dataset = Dataset(args, transform=train_trans, subset='train')
+        test_dataset = Dataset(args, transform=test_trans, subset='test')
+        return train_dataset, test_dataset
+
+
 
 def model_builder(args):
-    base_model = I3D_backbone(I3D_class=400)
-    base_model.load_pretrain(args.pretrained_i3d_weight)
-    PSNet_model = PSNet(n_channels=9)
-    Decoder_vit = decoder_fuser(dim=64, num_heads=8, num_layers=3)
-    Regressor_delta = MLP_score(in_channel=64, out_channel=1)
-    return base_model, PSNet_model, Decoder_vit, Regressor_delta
+    feat_dim = 368  # rny002 368  rny008/convnextt 768
+    classes = 2 # 一共2次切换
 
-def build_opti_sche(base_model, psnet_model, decoder, regressor_delta, args):
+    base_model = E2EModel(args.feature_arch, clip_len=args.clip_len, modality=args.modality,)
+    PSNet_model = SpotModel(classes, args.temporal_arch, feat_dim=feat_dim )
+    # print(PSNet_model)
+    # base_model = I3D_backbone(I3D_class=400)
+    # base_model.load_pretrain(args.pretrained_i3d_weight)
+    # PSNet_model = PSNet(n_channels=9)
+    EnhNet_model = EnhModel(feat_dim=feat_dim, hidden_dim=feat_dim//2, num_layers=3)
+    Decoder_vit = decoder_fuser(dim=feat_dim, num_heads=8, num_layers=3)
+    Regressor_delta = MLP_score(in_channel=feat_dim, out_channel=1)
+    return EnhNet_model,base_model,PSNet_model, Decoder_vit, Regressor_delta
+
+def build_opti_sche(EnhNet_model,base_model,psnet_model, decoder, regressor_delta, args):
     if args.optimizer == 'Adam':
         optimizer = optim.Adam([
+            {'params': EnhNet_model.parameters()},
             {'params': base_model.parameters(), 'lr': args.base_lr * args.lr_factor},
             {'params': psnet_model.parameters()},
             {'params': decoder.parameters()},
@@ -96,7 +111,7 @@ def resume_train(base_model, psnet_model, decoder, regressor_delta, optimizer, a
     return start_epoch, epoch_best_aqa, rho_best, L2_min, RL2_min
 
 
-def load_model(base_model, psnet_model, decoder, regressor_delta, args):
+def load_model(EnhNet_model,base_model, psnet_model, decoder, regressor_delta, args):
     ckpt_path = args.ckpts
     if not os.path.exists(ckpt_path):
         raise NotImplementedError('no checkpoint file from path %s...' % ckpt_path)
@@ -106,6 +121,8 @@ def load_model(base_model, psnet_model, decoder, regressor_delta, args):
     state_dict = torch.load(ckpt_path,map_location='cpu')
 
     # parameter resume of base model
+    # EnhNet_ckpt = {k.replace("module.", ""): v for k, v in state_dict['EnhNet_model'].items()}
+    # EnhNet_model.load_state_dict(EnhNet_ckpt)
     base_ckpt = {k.replace("module.", ""): v for k, v in state_dict['base_model'].items()}
     base_model.load_state_dict(base_ckpt)
     psnet_model_ckpt = {k.replace("module.", ""): v for k, v in state_dict['psnet_model'].items()}

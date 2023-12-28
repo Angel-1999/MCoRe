@@ -1,11 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="div" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" serverName="div-hsy" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+    <option name="confirmBeforeUploading" value="false" />
     <serverData>
-      <paths name="div">
+      <paths name="aq">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/MCoRe" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="aq_A4000">
         <serverdata>
           <mappings>
             <mapping deploy="/FineDiv" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="autodl">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/FineDiv" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="div-hsy">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/AQ/FineDiv0123" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
