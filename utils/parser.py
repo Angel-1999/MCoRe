@@ -4,7 +4,6 @@ import argparse
 
 def get_args():
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--archs', type = str, choices=['TSA'], help = 'our approach')
     parser.add_argument('--benchmark', type = str, choices=['FineDiving'], help = 'dataset')
     parser.add_argument('--prefix', type = str, default='default', help = 'experiment name')
     parser.add_argument('--resume', action='store_true', default=False ,help = 'resume training (interrupted by accident)')
@@ -55,7 +54,7 @@ def get_args():
 
 def setup(args):
 
-    args.config = '{}_TSA.yaml'.format(args.benchmark)
+    args.config = 'MCoRe.yaml'
     args.experiment_path = os.path.join('./experiments', args.benchmark, args.prefix)
     if args.resume:
 
